@@ -4,6 +4,7 @@ require(magrittr)
 require(RCurl)
 require(DataExplorer)
 require(gganimate)
+require(ggthemes)
 
 # Gettin the Data
 malaria <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2018-11-13/malaria_deaths_age.csv")
@@ -18,38 +19,30 @@ death_sum <- malaria[,-which(names(malaria) %in% c("X1","year"))] %>%
 # Plots
 
 # 1. Top 10 countries with Most Deaths caused by from 1990 till 2017
-  top_10 <- malaria %>% 
-    #filter(entity %in% head(death_sum$entity,10)) %>% 
-    mutate(year = as.double(year)) %>% 
-    filter(entity == "India") %>% 
-    ggplot(aes(year, deaths)) +
+  top_5 <- malaria %>% 
+    filter(entity %in% head(death_sum$entity,5)) %>% 
+    mutate(entity = str_replace(entity, "Democratic Republic of Congo", "Congo")) %>% 
+    select(entity, year, deaths) %>% 
+    group_by(entity, year) %>% 
+    summarise(total_deaths = sum(deaths)) %>% 
+    ggplot(aes(year, total_deaths)) +
     geom_line(aes(colour = entity), size = 2) +
-    #geom_segment(aes(xend = 2017, yend = deaths, colour = entity), linetype = 2) +
+    theme_fivethirtyeight() +
+    geom_segment(aes(xend = 2016, yend = total_deaths, colour = entity), linetype = 2) +
     geom_point() +
+    geom_text(aes(x = 2018, label = entity, colour = entity, size = 2)) +
     scale_color_viridis_d() +
     scale_y_continuous(breaks = seq(0, 350000, by = 50000),
                        labels = c("0", "50", "100", "150",
                                   "200", "250", "300", "350")) +
     scale_x_continuous(limits = c(1990, 2025),
-                       breaks = seq(1990, 2015, by = 5),
-                       labels = seq(1990, 2015, by = 5)) +
-    labs(title = 'Year:{frame}', x = 'Years', y = 'Deaths') +
-    theme_minimal() +
-    theme(legend.position = "none") 
-  
-  +
+                       breaks = seq(1990, 2020, by = 5),
+                       labels = seq(1990, 2020, by = 5)) +
+    labs(title = "The Five Countries with most \"Malaria Deaths\" ", subtitle = 'From 1990 till 2016', caption = "Tidytuesday | #rstats | week 33", y = 'Deaths (thousands)') +
+    theme(legend.position = "none", axis.title = element_text(), axis.title.x = element_blank()) +
     transition_reveal(id = entity, year) 
-    
-  test_data <-
-    data.frame(
-      var0 = 100 + c(0, cumsum(runif(49, -20, 20))),
-      var1 = 150 + c(0, cumsum(runif(49, -10, 10))),
-      date = seq(1891, 1990, by = 1)
-    )
   
-test_data <- tbl_df(test_data)
-
-
-ggplot(test_data, aes(date)) + 
-  geom_line(aes(y = var0, colour = "var0")) + 
-  geom_line(aes(y = var1, colour = "var1"))
+  # Save plot  
+  anim_save("malaria_deaths.gif", animation = last_animation())
+    
+  
