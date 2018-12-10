@@ -1,11 +1,31 @@
-# Required Packages
-require(tidyverse)
-require(magrittr)
-require(RCurl)
-require(DataExplorer)
-require(gganimate)
-require(ggthemes)
+---
+title: "TidyTuesday | Week 33 | Malaria Dataset"
+author: "Anish Joni"
+date: "December 11, 2018"
+output: github_document
+---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+***
+**My second Tidy tuesday participation.**
+
+Learnings: 
+* Don't wait too long for the perfect plot; Involment and finishing what you started is more important. 
+* gganimate() package for animated ggplots 
+* dplyr verbs usage 
+* working with maps withing ggplot2 through map_data()
+## Data:
+
+Deaths caused by Malaria across countries around the world between 1990 and 2016.
+
+## Plot:
+```{r animated_plot, include=FALSE}
+library(tidyverse)
+library(ggthemes)
+require(gganimate)
 # Gettin the Data
 malaria <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2018-11-13/malaria_deaths_age.csv")
 
@@ -41,8 +61,11 @@ death_sum <- malaria[,-which(names(malaria) %in% c("X1","year"))] %>%
     labs(title = "The Five Countries with most Malaria Deaths", subtitle = 'From 1990 till 2016', caption = "Tidytuesday | #rstats | week 33", y = 'Deaths (thousands)') +
     theme(legend.position = "none", axis.title = element_text(), axis.title.x = element_blank()) +
     transition_reveal(id = entity, year) 
-  
-  # Save plot  
-  anim_save("malaria_deaths.gif", animation = last_animation())
-    
-  
+
+
+```
+```{r}
+plot(top_5)
+```
+
+
