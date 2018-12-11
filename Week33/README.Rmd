@@ -2,11 +2,12 @@
 title: "TidyTuesday | Week 33 | Malaria Dataset"
 author: "Anish Joni"
 date: "December 11, 2018"
-output: github_document
+output: "html_notebook"
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
+htmltools::tagList(rmarkdown::html_dependency_font_awesome())
 ```
 
 ***
@@ -64,7 +65,7 @@ death_sum <- malaria[,-which(names(malaria) %in% c("X1","year"))] %>%
 
 
 ```
-```{r final plot}
+```{r final plot, echo=FALSE}
 plot(top_5)
 ```
 
