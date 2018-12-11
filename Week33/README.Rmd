@@ -13,12 +13,12 @@ knitr::opts_chunk$set(echo = FALSE)
 **My second Tidy tuesday participation.**
 
 Learnings: 
-* Don't wait too long for the perfect plot; Involment and finishing what you started is more important. 
-* gganimate() package for animated ggplots 
-* dplyr verbs usage 
-* working with maps withing ggplot2 through map_data()
-## Data:
+- Don't wait too long for the perfect plot; Involment and finishing what you started is more important. 
+- gganimate() package for animated ggplots 
+- dplyr verbs usage 
+- working with maps withing ggplot2 through map_data()
 
+## Data:
 Deaths caused by Malaria across countries around the world between 1990 and 2016.
 
 ## Plot:
