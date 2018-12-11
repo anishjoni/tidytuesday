@@ -64,7 +64,7 @@ death_sum <- malaria[,-which(names(malaria) %in% c("X1","year"))] %>%
 
 
 ```
-```{r}
+```{r final plot}
 plot(top_5)
 ```
 
