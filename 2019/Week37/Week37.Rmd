@@ -1,0 +1,99 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+#######################
+#  Required packages  #
+#######################
+```{r}
+library(tidyverse)
+library(janitor)
+library(zipcode)
+library(magrittr)
+library(plotly)
+library(viridis)
+```
+
+
+# Data --------------------------------------------------------------------
+
+```{r}
+data("zipcode")
+
+
+set.seed(20181209)
+
+#df <- read_csv("https://data.cityofnewyork.us/api/views/43nn-pn8j/rows.csv")
+setwd("~/GitHub/Tidy Tuesday/Week37")
+NYC_df <- read_csv("nyc_restaurants.csv")
+
+# Cleaning names with janitor, sampling 300,000 records, and dropping some variables
+# NYC_df %<>%
+#   janitor::clean_names() %>%
+#   select(-phone, -grade_date, -record_date, -building, -street) %>%
+#   sample_n(size = 300000)
+
+# save the .csv
+# write_csv(NYC_df, "nyc_restaurants.csv")
+
+# Extracting Geo data for regions in NY state
+
+zipcode_df <- zipcode %>% 
+  tbl_df() %>% 
+  filter(state == "NY") %>% 
+  mutate(zip = as.integer(zip))
+
+NYC_df
+summary(NYC_df)
+NYC_df[is.na(NYC_df$grade),12] <- 0 # NAs to 0
+```
+
+# EDA ---------------------------------------------------------------------
+```{r}
+NYC_df %>% 
+  select(zipcode, cuisine_description, score, grade) %>% 
+  inner_join(zipcode_df, by = c("zipcode" = "zip")) %>% 
+  ggplot() +
+  geom_polygon(aes(fill = score,  x=longitude, y=latitude))
+
+
+NYC_df %>% 
+  group_by(violation_code, violation_description, critical_flag) %>% 
+  count() %>% 
+  arrange(desc(n))
+
+NYC_df %>% 
+  ggplot(aes(score, colour = score >30)) +
+  geom_bar()
+ggplotly()
+
+# Cuisines ordered by worst scores
+NYC_df %>%
+  group_by(cuisine_description) %>% 
+  summarize(total_score = sum(score, na.rm = T), Count = n()) %>% 
+  mutate(score_ration = total_score/Count) %>% 
+  arrange(desc(score_ration)) %>%  head(10)
+
+NYC_df %>% # Add Colour
+  group_by(cuisine_description) %>% 
+  summarize(total_score = sum(score, na.rm = T), Count = n()) %>% 
+  mutate(score_ration = total_score/Count) %>% 
+  arrange(desc(score_ration)) %>% 
+  head(25) %>% 
+  ggplot(aes(x = reorder(cuisine_description, score_ration), y = score_ration), fill = cut(cuisine_description, 100)) +
+  geom_bar(stat = "identity") +
+  coord_flip()
+
+  
+
+
+```
+
+
+
+# Plots -------------------------------------------------------------------
+```{r}
+
+```
+

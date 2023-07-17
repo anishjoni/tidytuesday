@@ -69,4 +69,7 @@ death_sum <- malaria[,-which(names(malaria) %in% c("X1","year"))] %>%
 plot(top_5)
 ```
 
-
+```{r gapgif, fig.show='animate', ffmpeg.format='gif', dev='png''}
+# Display all plots
+top_5
+```
