@@ -1,0 +1,9 @@
+PackratFormat: 1.4
+PackratVersion: 0.9.1
+RVersion: 4.1.2
+Repos: CRAN=https://cran.rstudio.com/
+
+Package: packrat
+Source: CRAN
+Version: 0.9.1
+Hash: 7c88a751e2cda67c02db386b07517d4c

@@ -1,0 +1,104 @@
+---
+title: "GPT detectors"
+format: html
+editor: visual
+editor_options: 
+  chunk_output_type: console
+---
+
+## Libraries & data preprocessing!
+`
+
+```{r Libraries & data}
+# Load libraries
+library(pacman)
+
+p_load(tidyverse,
+       tidytuesdayR,
+       hablar,
+       DataExplorer,
+       dlookr,
+       magrittr) 
+
+# Load data
+tuesdata <- tidytuesdayR::tt_load(2023, week = 29)
+
+detectors <- as_tibble(tuesdata$detectors)
+
+```
+
+
+```{r Know thy data}
+glimpse(detectors)
+
+# deal with missing values first
+plot_missing(detectors)
+
+  #1. missing values: prompt
+    detectors %>% 
+      filter(is.na(prompt))
+    
+    #view(detectors$prompt)
+    
+    detectors %<>% 
+      mutate(prompt =  replace_na(prompt, "Not available")) # 'Not available' = NA in prompt
+    
+  
+  #2. missing values: native
+    detectors %>% 
+      filter(is.na(native))
+    
+    #view(detectors$native)
+    
+    detectors %<>% 
+      mutate(native = replace_na(native, "Not by Human")) # It is not written by human = NA in native
+
+
+# type conversion after dealing with missing values
+detectors %<>% 
+  convert(fct(kind, .pred_class, detector, name, native, model))
+
+glimpse(detectors)
+
+# Explore
+DataExplorer::create_report(detectors)
+
+n_distinct(detectors$document_id)
+
+
+
+```
+
+## Viz
+```{r Stories to viz}
+# Is there bias by AI detectors on non English writers?
+detectors %>% 
+  diagnose_category(native)
+
+detectors %>% 
+  diagnose_category(model)
+
+detectors %>% 
+  tabyl(model, native, .pred_class)
+
+detectors %>% 
+  filter(!native == "Don't know") %>% 
+  diagnose_category(native)
+
+detectors %>% 
+  filter(native == "Yes") %>% 
+  diagnose_category(.pred_class)
+
+detectors %>% 
+  filter(native == "No") %>% 
+  diagnose_category(.pred_class)
+
+
+# YES, it does!
+
+```
+
+```{r Build the Viz}
+
+```
+
