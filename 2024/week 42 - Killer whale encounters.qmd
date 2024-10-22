@@ -1,0 +1,23 @@
+---
+title: "Southern Resident Killer Whale Encounters"
+format: html
+---
+
+
+```{r, Load libraries & data}
+library(pacman)
+p_load(tidytuesdayR, tibble, hablar, tidyr, dplyr)
+tuesdata <- tidytuesdayR::tt_load(2024, week = 42)
+orcas <- tuesdata$orcas
+```
+
+
+```{r}
+glimpse(orcas)
+
+
+orcas |>
+    mutate(encounter_sequence = replace_na(encounter_sequence, '0')) |> 
+    convert(int(encounter_sequence)) |> View()
+    summarize(sum(is.na(encounter_sequence)))
+```
