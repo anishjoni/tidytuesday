@@ -3,7 +3,6 @@
 #######################
 library(tidyverse)
 library(janitor)
-library(zipcode)
 library(magrittr)
 
 

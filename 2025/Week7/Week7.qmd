@@ -1,0 +1,164 @@
+---
+title: "Week 7 - An exploration of Agencies from FBI crime data"
+format: html
+---
+
+
+```{r}
+library(pacman)
+remotes::install_github("qfes/rdeck")
+p_load(tidytuesdayR,
+        tibble,
+        dplyr,
+        ggplot2, 
+        rayshader, 
+        rayrender, 
+        rgl,
+        tidyverse,
+        terra,
+        giscoR,
+        tigris,
+        sf,
+        rdeck)
+
+
+data <- tidytuesdayR::tt_load(2025, week = 7)
+
+agencies <- tibble(data$agencies)
+
+rm(data)
+```
+
+Brainstorm questions:
+- NIBR Adoption timeline, percentage by states
+- Number of agencies per county, state
+- Animation of NIBR adpotion by agencies by a selcted state. 
+- Distribution of agencies in a state? how close they are? avg. closest distance to next agency by state?
+- Most restistive states for NIBR
+
+```{r, Agencies per county, state}
+agencies_count <- agencies |> 
+    filter(agency_type == 'City') |> 
+    group_by(state) |> 
+    count(name = 'agencies_count') 
+    # |> 
+    # arrange(desc(agencies_count)) |> 
+    # ggplot(aes(state, agencies_count)) +
+    # geom_bar(stat = 'identity')
+
+# To get US map data
+# crsLONGLAT <- "+proj=longlat +datum=WGS84 +no_defs"
+
+# us_border <- giscoR::gisco_get_countries(country = "USA") |> 
+#    sf::st_crop(c(xmin = -125, xmax = -60, ymin = 20, ymax = 60)) |> 
+#    sf::st_transform(crsLONGLAT)
+
+# Get US states shp files or borders 
+us_states <- tigris::states(cb = TRUE, year = 2023)
+
+
+# Create base raster -  US states
+us_states_raster <- terra::rast(us_states) # Understand what is happening here!
+                                    # Converts sf object to terra or SpatRaster I think
+
+
+agencies_stat <- c(agencies_count$agencies_count)
+# Create raster from stats of FBI agencies
+terra::init(us_states_raster, fun = function(x) agencies_stat)
+terra::rast(agencies_count$agencies_count)
+
+plot(sf::st_geometry(us_states))
+```
+
+```{r}
+library(sf)
+library(arrow)
+
+install_arrow()
+
+# Load FBI data
+cali_agencies <- st_as_sf(
+  agencies |> na.omit() |> 
+    filter(county == 'California'),
+  coords = c("longitude", "latitude"),
+  crs = 4326
+)
+
+# Load Overture Maps data
+buildings <- open_dataset('s3://overturemaps-us-west-2/release/2024-05-16-beta.0/theme=buildings?region=us-west-2')
+#overture_sf <- st_as_sf(overture_data, crs = 4326)
+
+cali_bbox <- counties(state = "CA", cb = TRUE, resolution = "20m") |> 
+  #filter(NAME == "San Francisco") |> 
+  st_bbox() |> 
+  as.vector()
+
+cali_buildings <- buildings |>
+  filter(bbox$xmin > cali_bbox[1],
+         bbox$ymin > cali_bbox[2],
+         bbox$xmax < cali_bbox[3],
+         bbox$ymax < cali_bbox[4]) |>
+  select(id, geometry, height) |> 
+  collect() |>
+  st_as_sf(crs = 4326) |> 
+  mutate(height = ifelse(is.na(height), 8, height))
+
+
+
+# Perform spatial join
+matched_data <- st_join(
+  fbi_data,
+  sf_buildings,
+  join = st_intersects,
+  left = TRUE
+)
+# Find nearest building to each agency
+cali_agencies <- cali_agencies |> rename(geometry_fbi = geometry)
+
+nearest_buildings <- st_join(
+  fbi_data,
+  sf_buildings |> select(geometry, everything()),
+  join = st_nearest_feature,
+  left = TRUE
+)
+
+
+buildings_joined_subset <- st_intersection(nearest_buildings, st_as_sfc(st_bbox(sf_buildings)))
+
+nearest_buildings_sf <- st_as_sf(nearest_buildings)
+
+nearest_buildings_sf$geometry <- st_sfc(nearest_buildings_sf$geometry)
+
+# Convert to GEOMETRY
+nearest_buildings_sf$geometry <- st_cast(nearest_buildings_sf$geometry, "GEOMETRY")
+
+
+st_geometry_type(nearest_buildings_sf$geometry)
+```
+
+
+```{r}
+
+options(rdeck.mapbox_access_token = 'pk.eyJ1Ijoiam9uaS1tYXBzIiwiYSI6ImNtN2F5MTYzejA5bGEybHBuYm8zcHR0dnYifQ.zgcmfyIEveMXTgUihiaSIA')
+
+rdeck(map_style = mapbox_light(),
+      initial_view_state = view_state(
+        center = c(-122.4657, 37.7548),
+        zoom = 11.3,
+        bearing = -60,
+        pitch = 76
+      )) |> 
+    add_polygon_layer(
+        data = buildings_joined_subset,
+        name = 'San Francisco',
+        get_polygon = geometry, 
+        get_elevation = height,
+        get_fill_color = scale_color_linear(
+            col = height, 
+            palette = viridisLite::inferno(100, direction = -1)
+        ),
+        extruded = TRUE,
+        opacity = 0.5)
+
+    
+```

@@ -9,7 +9,6 @@ editor_options:
 ```{r}
 library(tidyverse)
 library(janitor)
-library(zipcode)
 library(magrittr)
 library(plotly)
 library(viridis)
@@ -19,7 +18,6 @@ library(viridis)
 # Data --------------------------------------------------------------------
 
 ```{r}
-data("zipcode")
 
 
 set.seed(20181209)
