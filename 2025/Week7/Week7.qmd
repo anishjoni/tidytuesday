@@ -19,7 +19,9 @@ p_load(tidytuesdayR,
         giscoR,
         tigris,
         sf,
-        rdeck)
+        rdeck,
+       arrow)
+install_arrow()
 
 
 data <- tidytuesdayR::tt_load(2025, week = 7)
@@ -41,17 +43,6 @@ agencies_count <- agencies |>
     filter(agency_type == 'City') |> 
     group_by(state) |> 
     count(name = 'agencies_count') 
-    # |> 
-    # arrange(desc(agencies_count)) |> 
-    # ggplot(aes(state, agencies_count)) +
-    # geom_bar(stat = 'identity')
-
-# To get US map data
-# crsLONGLAT <- "+proj=longlat +datum=WGS84 +no_defs"
-
-# us_border <- giscoR::gisco_get_countries(country = "USA") |> 
-#    sf::st_crop(c(xmin = -125, xmax = -60, ymin = 20, ymax = 60)) |> 
-#    sf::st_transform(crsLONGLAT)
 
 # Get US states shp files or borders 
 us_states <- tigris::states(cb = TRUE, year = 2023)
@@ -70,16 +61,11 @@ terra::rast(agencies_count$agencies_count)
 plot(sf::st_geometry(us_states))
 ```
 
-```{r}
-library(sf)
-library(arrow)
-
-install_arrow()
-
-# Load FBI data
+```{r, find nearest building data to agencies}
+# Load FBI crime agency data
 cali_agencies <- st_as_sf(
   agencies |> na.omit() |> 
-    filter(county == 'California'),
+    filter(state == 'California'),
   coords = c("longitude", "latitude"),
   crs = 4326
 )
@@ -88,8 +74,7 @@ cali_agencies <- st_as_sf(
 buildings <- open_dataset('s3://overturemaps-us-west-2/release/2024-05-16-beta.0/theme=buildings?region=us-west-2')
 #overture_sf <- st_as_sf(overture_data, crs = 4326)
 
-cali_bbox <- counties(state = "CA", cb = TRUE, resolution = "20m") |> 
-  #filter(NAME == "San Francisco") |> 
+cali_bbox <- tigris::counties(state = "CA", cb = TRUE, resolution = "20m") |> 
   st_bbox() |> 
   as.vector()
 
@@ -103,21 +88,12 @@ cali_buildings <- buildings |>
   st_as_sf(crs = 4326) |> 
   mutate(height = ifelse(is.na(height), 8, height))
 
-
-
-# Perform spatial join
-matched_data <- st_join(
-  fbi_data,
-  sf_buildings,
-  join = st_intersects,
-  left = TRUE
-)
 # Find nearest building to each agency
-cali_agencies <- cali_agencies |> rename(geometry_fbi = geometry)
+cali_agencies <- cali_agencies |> rename(geometry_agency = geometry)
 
 nearest_buildings <- st_join(
-  fbi_data,
-  sf_buildings |> select(geometry, everything()),
+  cali_agencies,
+  cali_buildings |> select(geometry, everything()),
   join = st_nearest_feature,
   left = TRUE
 )
@@ -136,8 +112,7 @@ nearest_buildings_sf$geometry <- st_cast(nearest_buildings_sf$geometry, "GEOMETR
 st_geometry_type(nearest_buildings_sf$geometry)
 ```
 
-
-```{r}
+```{r, mapbox}
 
 options(rdeck.mapbox_access_token = 'pk.eyJ1Ijoiam9uaS1tYXBzIiwiYSI6ImNtN2F5MTYzejA5bGEybHBuYm8zcHR0dnYifQ.zgcmfyIEveMXTgUihiaSIA')
 
@@ -162,3 +137,28 @@ rdeck(map_style = mapbox_light(),
 
     
 ```
+
+```{r}
+agencies <- agencies %>% convert(fct(ori, county, state, agency_name, agency_type))
+
+ggplotly(agencies %>% 
+  filter(state_abbr == 'NY') %>% 
+  group_by(agency_type, nibrs_start_date) %>% count() %>% 
+  ggplot(aes(nibrs_start_date, n, colour = agency_type, size = n, alpha = .1)) +
+    geom_jitter(width = .75, height = 0.25))
+```
+
+```{r}
+states_high_agencies <- agencies %>%
+group_by(state) %>% count() %>% arrange(desc(n)) %>% head(3) %>% pull(state)
+
+
+ggplotly(agencies %>% 
+           filter(state %in% states_high_agencies) %>% 
+           group_by(nibrs_start_date, state) %>% count() %>% 
+           ggplot(aes(nibrs_start_date, n, colour = state, size = n, alpha = .1)) +
+           geom_jitter(width = .75, height = 0.25) + 
+           facet_wrap(vars(state), nrow = 3) +
+           theme(legend.position = ))
+```
+
